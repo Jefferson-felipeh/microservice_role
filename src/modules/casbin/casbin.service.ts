@@ -8,7 +8,6 @@ import { SequelizeAdapter } from 'casbin-sequelize-adapter';
 @Injectable()
 export class CasBinService implements OnModuleInit {
   private enforcer: Enforcer;
-  dataUserCreated;
 
   //Executa o bloco sempre que o módulo de casbin for iniciado_
   //Basicamente é ele que inicia o casbin na aplicação criando o adapter 

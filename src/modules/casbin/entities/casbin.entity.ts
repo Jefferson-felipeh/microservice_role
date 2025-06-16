@@ -4,6 +4,7 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 //Nessa entidade ou banco de dados irei armazenar as políticas, como: p, jefferson, /roles/ get
 @Entity('casbin_rule')
 export class CasbinRuleEntity {
+  //Esses são os campos necessários para a entidade do casbin_
   @PrimaryGeneratedColumn()
   id: number;
 
