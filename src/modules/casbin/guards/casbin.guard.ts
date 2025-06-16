@@ -1,0 +1,33 @@
+import { CanActivate, ExecutionContext, ForbiddenException, HttpException, Injectable } from "@nestjs/common";
+import { CasBinService } from '../casbin.service';
+
+@Injectable()
+//Será implementado a classe CanActivate_
+export class CasBinGuard implements CanActivate {
+    constructor(private casbinService: CasBinService) { }
+
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        //Aqui dentro iremos construir a lógica de permissão/autorização do casbin_
+
+        //Obtendo dados do header da requisição_
+        const request = context.switchToHttp().getRequest();
+        const user = request.user?.sub;//Usuário fornecido por meio do token;
+        const method = request.method.toLowerCase();//Método de endpoint que esta sendo acessado;
+        const path = request.route.path;//endereço da rota acessada;
+
+        //Chamando o método do casbin.service.ts para obter o enforce_
+        const enforcer = await this.casbinService.getEnforce();
+
+        // console.log('User:', user);
+        // console.log('Method:', method);
+        // console.log('Path:', path);
+        // console.log('Policies:', await enforcer.getPolicy());
+        // console.log('Grouping Policies:', await enforcer.getGroupingPolicy());
+
+        //Passando o enforce_
+        const sllowed = await enforcer.enforce(user, path, method);
+
+        if (!sllowed) throw new ForbiddenException('Acesso negado pelo CasBin!');
+        return true;
+    }
+}
