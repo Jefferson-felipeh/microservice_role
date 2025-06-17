@@ -45,7 +45,6 @@ export class CasBinService implements OnModuleInit {
     await enforcer.savePolicy(); // Salva no banco (casbin_rule)
   }
 
-  //Iniciando o casbin_
   private async casbinInitEnforcer() {
     // Conteúdo do model.conf em string
     //Ao inves de criar o arquivo model.conf, estou adicionando o conteudo atravez desse texto,
