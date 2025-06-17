@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { RoleDto } from "./dtos/role.dto";
 import { RoleService } from "./role.service";
 import { CasBinGuard } from "../casbin/guards/casbin.guard";
 import { JwtAuthGuard } from "../casbin/guards/jwtAuthGuard.guard";
+import { Assign_roleDto } from "./dtos/assing_role.dto";
 
 @Controller('role')
 export class RoleController{
@@ -28,10 +29,29 @@ export class RoleController{
     getMany(){
         return this.roleService.getMany();
     }
+    
+    @UseGuards(JwtAuthGuard,CasBinGuard)
+    @Get('getOne/:id')
+    async getOne(@Param('id') id:string):Promise<RoleDto>{
+        return this.roleService.getOne(id);
+    }
 
     //Deletar Roles específicos_
+    @UseGuards(JwtAuthGuard,CasBinGuard)
     @Delete('delete/:id')
     async delete(@Param('id') id:string):Promise<object>{
         return this.roleService.delete(id);
+    }
+
+    @UseGuards(JwtAuthGuard,CasBinGuard)
+    @Patch('update/:id')
+    async updateRole(@Param('id') id:string,dataRole:RoleDto):Promise<object>{
+        return this.roleService.updateRole(id,dataRole);
+    }
+    
+    @UseGuards(JwtAuthGuard,CasBinGuard)
+    @Post('assign-role')
+    async assign_role(@Body() role:Assign_roleDto):Promise<object>{
+        return this.roleService.assign_role(role);
     }
 }

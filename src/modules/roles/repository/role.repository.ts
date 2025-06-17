@@ -25,6 +25,12 @@ export class RoleRepository{
         return this.repository.find();
     }
 
+    async getOne(id:string):Promise<Role>{
+        const role = await this.repository.findOneBy({id});
+        if(!role) throw new HttpException('Role não encontrada!',400);
+        return role;
+    }
+
     async delete(id:string):Promise<object>{
         try{
 
@@ -44,5 +50,19 @@ export class RoleRepository{
         catch(error){
             throw new HttpException(error.message || error,400);
         }
+    }
+
+    async updateRole(id:string, dataRole:Role):Promise<object>{
+        const role = await this.repository.findOneBy({id});
+        if(!role) throw new HttpException('Erro ao encontrar role!',400);
+
+        const update = await this.repository.update(id,dataRole);
+
+        if(!update) throw new HttpException('Erro ao atualizar informações da role!',400);
+
+        return {
+            status: 'SuccessFuly',
+            data:update
+        };
     }
 }

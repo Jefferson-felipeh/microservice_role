@@ -23,11 +23,16 @@ export class CasBinService implements OnModuleInit {
   //2- Associar o usuário ao grupo de regras;
   //3- verificar se o usuário possue tais permissões;
   async seedDefaultPolicies() {
+    //Método que esta instanciando novas regras da política de autorização do casbin para o banco de dados do casbin_rule_
     const enforcer = await this.getEnforce();
 
     const defaultPolicies = [
       ['admin', '/role/create-role', 'post'],
       ['user', '/role/list', 'get'],
+      ['admin', '/role/delete/:id', 'delete'],
+      ['admin', '/role/update/:id', 'patch'],
+      ['user', '/role/getOne/:id', 'get'],
+      ['super-admin', '/role/assign-role','post']
     ];
 
     for (const [sub, obj, act] of defaultPolicies) {
@@ -61,7 +66,7 @@ export class CasBinService implements OnModuleInit {
       e = some(where (p.eft == allow))
 
       [matchers]
-      m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
+      m = g(r.sub, p.sub) && keyMatch(r.obj, p.obj) && r.act == p.act
     `;
 
     //Configurando o adapter, o adapter são as credencias e informações necessárias para conexão com o BD_
@@ -98,9 +103,12 @@ export class CasBinService implements OnModuleInit {
     console.log(dataUser.userid)
     if (!dataUser) throw new HttpException('Dados do usuário não obtidos!', 403);
 
-    await this.enforcer.addGroupingPolicy(dataUser.userid,'admin');//O usuário criado pertencerá ao grupo de regras de role user;
+    //Por padrão, todo usuário criado será adicionado no grupo de regra user_
+    await this.enforcer.addGroupingPolicy(dataUser.userid,'user');//O usuário criado pertencerá ao grupo de regras de role user;
+
     //Após criar as regras da política de autenticação e adiciona-las na entidade casbin_rule,
     //iremos, ao criar o usuário, atribuir no grupo de regra específica_
+
   }
 
   async getEnforce(): Promise<Enforcer> {
@@ -112,4 +120,18 @@ export class CasBinService implements OnModuleInit {
     return this.enforcer;
   }
 
+  async assign_role(id:string,role:string):Promise<object>{
+
+    this.enforcer.loadPolicy();
+
+    if(!id) throw new HttpException('Identificador não atribuido!',400);
+
+    const role_attribuited = await this.enforcer.addGroupingPolicy(id,role,'user');
+
+    if(!role_attribuited) throw new HttpException('Erro ao atribuir role!',400);
+
+    return {
+      status:'attribuited successfuly'
+    }
+  }
 }
