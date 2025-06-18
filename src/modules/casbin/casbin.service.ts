@@ -1,12 +1,12 @@
 // src/casbin/casbin.provider.ts
-import { HttpException, Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Enforcer, newEnforcer, newModelFromString } from 'casbin';
 import { SequelizeAdapter } from 'casbin-sequelize-adapter';
 import { CasbinRuleEntity } from './entities/casbin.entity';
 import { Repository } from 'typeorm';
-import { UserRoleRepository } from '../user_roles/repository/userRole.repository';
-import { Access_Control_Service } from 'src/services-control/access-control/access-control.service';
+import { lastValueFrom } from 'rxjs';
+import { ClientProxy } from '@nestjs/microservices';
 
 //Service reponsável por construir o adapter, referenciar o banco de dados no adapter, 
 //e obter os dados das regras que serão especificadas no banco de dados atravez dos dados do model.conf_
@@ -16,9 +16,12 @@ export class CasBinService implements OnModuleInit {
     //Entidade casbin_rule_
     @InjectRepository(CasbinRuleEntity) private repository: Repository<CasbinRuleEntity>,
     
+    //Utilizando o ClientProxy para enviar um send() para o microservice_users_
+    @Inject('MICROSERVICE_USERS') private client:ClientProxy
   ){}
 
   private enforcer: Enforcer;
+  private dataEnforce?:{user:string,sub:string};
 
   //Executa o bloco sempre que o módulo de casbin for iniciado_
   //Basicamente é ele que inicia o casbin na aplicação criando o adapter 
@@ -87,7 +90,8 @@ export class CasBinService implements OnModuleInit {
       host: 'localhost',
       database: 'microservice_users',
       username: 'jeffersons',
-      password: 'JFS0211@ti'
+      password: 'JFS0211@ti',
+      logging: false//Retira os logs de queries SQL emitidos pelo Sequelize;
     });
 
     const model = newModelFromString(modelText);
@@ -109,16 +113,19 @@ export class CasBinService implements OnModuleInit {
     return this.enforcer;
   }
 
-  async getEnforce(): Promise<Enforcer> {
+  async getEnforce(dataUser?:{user:string ,sub:string}): Promise<Enforcer> {
     if (!this.enforcer) {
       console.log('🚀 Inicializando o enforcer on-demand...');
       // await this.createdBy_attribuited(createdBy)
       await this.casbinInitEnforcer();
     }
 
+    this.dataEnforce = dataUser;
+
     return this.enforcer;
   }
 
+  //Grupo padrão atribuido a todo usuário criado_
   async getDataUserCasbin(dataUser, createdBy: string) {
     if (!dataUser) throw new HttpException('Dados do usuário não obtidos!', 403);
 
@@ -130,6 +137,7 @@ export class CasBinService implements OnModuleInit {
 
   //Atribuindo valor a coluna createdBy_
   async createdByAttribuition(dataUser, createdBy: string) {
+    console.log(dataUser +" - "+createdBy)
     const grupoRegister = await this.repository.findOne({
       where: {
         ptype: 'g',
@@ -145,16 +153,23 @@ export class CasBinService implements OnModuleInit {
     await this.repository.save(grupoRegister);
   }
 
+  //Atribuir um usuário a um novo grupo de regras_
   async assign_role(id: string, role: string): Promise<object> {
     if (!id) throw new HttpException('Identificador não atribuido!', 400);
 
     this.enforcer.loadPolicy();
+    
+    const assign_role_user = await this.getUser(this.dataEnforce);
+    console.log(assign_role_user);
+    if (!assign_role_user) throw new HttpException('Erro ao obter dados!', 400);
 
     const roleActual = await this.getUserToGroup(id);
     if(!roleActual) throw new HttpException('Usuário não encontrado no grupo de regras!',403);
 
     const role_attribuited = await this.enforcer.addGroupingPolicy(id, role, roleActual);
     if (!role_attribuited) throw new HttpException('Erro ao atribuir role!', 400);
+
+    await this.createdByAttribuition(id,assign_role_user);
 
     return {
       status: 'attribuited successfuly'
@@ -175,6 +190,14 @@ export class CasBinService implements OnModuleInit {
     if(!userToGroup) throw new HttpException('Usuário não tem acesso a esse grupo de permissões!',403);
     
     return userToGroup.v1;
+  }
+
+  async getUser(dataUser?:{user:string,sub:string}){
+    const user = await lastValueFrom(
+      this.client.send('find-user-by-email',dataUser?.user),
+    );
+
+    return user.firstname;
   }
 }
 

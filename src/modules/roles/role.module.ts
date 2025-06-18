@@ -8,10 +8,12 @@ import { RoleRepository } from "./repository/role.repository";
 import { CasBinGuard } from "../casbin/guards/casbin.guard";
 import { CasBinService } from "../casbin/casbin.service";
 import { CasbinRuleEntity } from "../casbin/entities/casbin.entity";
+import { CasbinModule } from "../casbin/casbin.module";
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([Role,UserRole,CasbinRuleEntity]),
+        CasbinModule
     ],
     controllers: [RoleController],
     providers: [
