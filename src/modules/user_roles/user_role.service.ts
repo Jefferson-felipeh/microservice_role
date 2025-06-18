@@ -7,11 +7,11 @@ export class UserRolesService{
 
     constructor(private userRoleRepository:UserRoleRepository){}
 
-    async create(id:string):Promise<UserRoleDto>{
+    async create(dataCreatedUser:{id:string,firstname:string}):Promise<UserRoleDto>{
         //Validando o id obtido_
-        if(!id) throw new HttpException('Erro ao criar UserRole!',400);
+        if(!dataCreatedUser) throw new HttpException('Erro ao criar UserRole!',400);
 
-        return await this.userRoleRepository.create(id);
+        return await this.userRoleRepository.create(dataCreatedUser);
     }
 
     async deleteRole(id:string):Promise<object>{

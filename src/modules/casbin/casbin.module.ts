@@ -8,18 +8,15 @@ import { JwtStrategy } from "./strategy/jwtStrategy.strategy";
 
 @Module({
     imports: [
-        //Instanciando ou referenciando a entidade ao typeorm_
-        TypeOrmModule.forFeature([CasbinRuleEntity])
+        TypeOrmModule.forFeature([CasbinRuleEntity]),
     ],
     providers: [
-        //Service do casbin resposável por expecificar o path do arquivo model.conf para configuração das regras do banco de dados;
         CasBinService,
-        //Guard que vai capturar os dados da requisição e verificar as partes essenciais_
         CasBinGuard,
         JwtAuthGuard,
-        JwtStrategy
+        JwtStrategy,
     ],
-    exports: [//Exportando para outros módulos_
+    exports: [
         CasBinService,
         CasBinGuard,
         JwtAuthGuard,

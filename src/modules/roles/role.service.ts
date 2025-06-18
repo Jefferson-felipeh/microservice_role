@@ -1,15 +1,15 @@
 import { HttpException, Injectable } from "@nestjs/common";
 import { RoleDto } from "./dtos/role.dto";
 import { RoleRepository } from "./repository/role.repository";
-import { CasBinService } from "../casbin/casbin.service";
 import { Assign_roleDto } from "./dtos/assing_role.dto";
+import { CasBinService } from "../casbin/casbin.service";
 
 @Injectable()
 export class RoleService{
 
     constructor(
         private roleRepository:RoleRepository,
-        private casbinService: CasBinService
+        private casbinService:CasBinService
     ){}
 
     async create(dataBody:RoleDto):Promise<RoleDto>{
@@ -43,6 +43,7 @@ export class RoleService{
         return update;
     }
 
+    //Atribuir um usuário ao u novo grupo de função_
     async assign_role(role:Assign_roleDto):Promise<object>{
         if(!role.id || !role.role) throw new HttpException('Dados não fornecidos!',400);
         const assign_role_attribuited = await this.casbinService.assign_role(role.id,role.role);

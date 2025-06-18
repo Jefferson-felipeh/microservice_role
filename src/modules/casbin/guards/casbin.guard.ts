@@ -13,14 +13,14 @@ export class CasBinGuard implements CanActivate {
         const user = request.user?.sub;//Usuário fornecido por meio do token jwt;
         const path = request.route.path;//endereço da rota acessada;
         const method = request.method.toLowerCase();//Método de endpoint que esta sendo acessado;
-        console.log(`${user} - ${path} - ${method}`);
+        
         //Chamando o método do casbin.service.ts para obter o enforce_
         const enforcer = await this.casbinService.getEnforce();
 
         //Passando o enforce_
         const sllowed = await enforcer.enforce(user, path, method);
-        console.log(sllowed);
-        if (!sllowed) throw new ForbiddenException('Acesso negado pelo CasBin!');
+
+        if (!sllowed) throw new ForbiddenException('Acesso negado,usuário não tem permissão!');
         return true;
     }
 }

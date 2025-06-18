@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 // Entidade do módulo casbin usado para armazenar as regras de permissão_
 //Nessa entidade ou banco de dados irei armazenar as políticas, como: p, jefferson, /roles/ get
@@ -28,4 +28,10 @@ export class CasbinRuleEntity {
 
   @Column({ nullable: true })
   v5: string;
+
+  @CreateDateColumn({nullable: true})
+  createdOn:Date
+
+  @Column({nullable: true})
+  createdBy:string
 }

@@ -14,7 +14,7 @@ export class UserRoleRepository{
         private casbinService:CasBinService
     ){}
 
-    async create(id:string):Promise<UserRole>{
+    async create(dataCreatedUser):Promise<UserRole>{
         //Observe que, todo usuário recem criado receberá um role padrão_
 
         //Como as Roles já foram cadastradas manualmente na entidade Role,
@@ -23,22 +23,19 @@ export class UserRoleRepository{
         const defaultRole = await this.repositoryRole.findOne({
             where: {role:'user'},
         });
-
         if(!defaultRole) throw new HttpException('Role não encontrado!',400);
 
         //A entidade User_Role vai receber dois valores associados ao campo userId, que vem do microservice de usuários ao criar um novo usuário_
         //E o segundo campo é o role, que vai receber
         const createUserRole = this.repository.create({
-            userid: id,
+            userid: dataCreatedUser.id,
             role: defaultRole//Preenchendo o campo role da entidade com o Role obtido da entidade Role;
         });
-
         if(!createUserRole) throw new HttpException('Erro ao criar estrutura!',400);
 
         const saveUserRole = await this.repository.save(createUserRole);
-
-        await this.casbinService.getDataUserCasbin(saveUserRole);
-
+        await this.casbinService.getDataUserCasbin(saveUserRole,dataCreatedUser.firstname);
+        
         return saveUserRole;
     }
 
@@ -55,5 +52,19 @@ export class UserRoleRepository{
             status: 'Deleted Successfuly',
             data: deleteUserRole
         }
+    }
+
+    async getOneUserRole(userId:string):Promise<UserRole>{
+        if(!userId) throw new HttpException('usuário não encontrado!',400);
+
+        const userRole = await this.repository.findOne({
+            where: {
+                userid:userId
+            }
+        });
+
+        if(!userRole) throw new HttpException('Dados não encontrados com base no id do usuário!',400);
+
+        return userRole;
     }
 }

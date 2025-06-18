@@ -1,12 +1,23 @@
 // src/casbin/casbin.provider.ts
 import { HttpException, Injectable, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Enforcer, newEnforcer, newModelFromString } from 'casbin';
 import { SequelizeAdapter } from 'casbin-sequelize-adapter';
+import { CasbinRuleEntity } from './entities/casbin.entity';
+import { Repository } from 'typeorm';
+import { UserRoleRepository } from '../user_roles/repository/userRole.repository';
+import { Access_Control_Service } from 'src/services-control/access-control/access-control.service';
 
 //Service reponsável por construir o adapter, referenciar o banco de dados no adapter, 
 //e obter os dados das regras que serão especificadas no banco de dados atravez dos dados do model.conf_
 @Injectable()
 export class CasBinService implements OnModuleInit {
+  constructor(
+    //Entidade casbin_rule_
+    @InjectRepository(CasbinRuleEntity) private repository: Repository<CasbinRuleEntity>,
+    
+  ){}
+
   private enforcer: Enforcer;
 
   //Executa o bloco sempre que o módulo de casbin for iniciado_
@@ -32,7 +43,7 @@ export class CasBinService implements OnModuleInit {
       ['admin', '/role/delete/:id', 'delete'],
       ['admin', '/role/update/:id', 'patch'],
       ['user', '/role/getOne/:id', 'get'],
-      ['super-admin', '/role/assign-role','post']
+      ['super-admin', '/role/assign-role', 'post']
     ];
 
     for (const [sub, obj, act] of defaultPolicies) {
@@ -98,39 +109,79 @@ export class CasBinService implements OnModuleInit {
     return this.enforcer;
   }
 
-  async getDataUserCasbin(dataUser) {
-    console.log(dataUser.userid)
-    if (!dataUser) throw new HttpException('Dados do usuário não obtidos!', 403);
-
-    //Por padrão, todo usuário criado será adicionado no grupo de regra user_
-    await this.enforcer.addGroupingPolicy(dataUser.userid,'user');//O usuário criado pertencerá ao grupo de regras de role user;
-
-    //Após criar as regras da política de autenticação e adiciona-las na entidade casbin_rule,
-    //iremos, ao criar o usuário, atribuir no grupo de regra específica_
-
-  }
-
   async getEnforce(): Promise<Enforcer> {
     if (!this.enforcer) {
       console.log('🚀 Inicializando o enforcer on-demand...');
+      // await this.createdBy_attribuited(createdBy)
       await this.casbinInitEnforcer();
     }
 
     return this.enforcer;
   }
 
-  async assign_role(id:string,role:string):Promise<object>{
+  async getDataUserCasbin(dataUser, createdBy: string) {
+    if (!dataUser) throw new HttpException('Dados do usuário não obtidos!', 403);
+
+    //Por padrão, todo usuário criado será adicionado no grupo de regra user_
+    await this.enforcer.addGroupingPolicy(dataUser.userid, 'user');
+
+    await this.createdByAttribuition(dataUser, createdBy);
+  }
+
+  //Atribuindo valor a coluna createdBy_
+  async createdByAttribuition(dataUser, createdBy: string) {
+    const grupoRegister = await this.repository.findOne({
+      where: {
+        ptype: 'g',
+        v0: dataUser.userid,
+        v1: 'user'
+      }
+    });
+
+    if (!grupoRegister) throw new HttpException('Grupo de regras não encontrado!', 403);
+
+    grupoRegister.createdBy = createdBy;
+
+    await this.repository.save(grupoRegister);
+  }
+
+  async assign_role(id: string, role: string): Promise<object> {
+    if (!id) throw new HttpException('Identificador não atribuido!', 400);
 
     this.enforcer.loadPolicy();
 
-    if(!id) throw new HttpException('Identificador não atribuido!',400);
+    const roleActual = await this.getUserToGroup(id);
+    if(!roleActual) throw new HttpException('Usuário não encontrado no grupo de regras!',403);
 
-    const role_attribuited = await this.enforcer.addGroupingPolicy(id,role,'user');
-
-    if(!role_attribuited) throw new HttpException('Erro ao atribuir role!',400);
+    const role_attribuited = await this.enforcer.addGroupingPolicy(id, role, roleActual);
+    if (!role_attribuited) throw new HttpException('Erro ao atribuir role!', 400);
 
     return {
-      status:'attribuited successfuly'
+      status: 'attribuited successfuly'
     }
   }
+
+  //Retorna o grupo ao qual o usuário pertence de acordo com o id do usuário_
+  async getUserToGroup(id:string){
+    //Buscando pelo grupo de regras em que o usuário foi inserido_
+    const userToGroup = await this.repository.findOne({
+      where: {
+        v0: id,
+      },
+      order: {
+        id: 'DESC'
+      }
+    });
+    if(!userToGroup) throw new HttpException('Usuário não tem acesso a esse grupo de permissões!',403);
+    
+    return userToGroup.v1;
+  }
 }
+
+//RBAC -> Controle de Acesso Baseado em Funções
+//ABAC -> Controle de Acesso Baseado em Atributos
+
+//Tem tres momentos em que os dados são cadastrados na entidade casbin_rule:
+//1- Quando é criado uma nova regra com politicas definidas no banco de dados com o addPolicy();
+//2- Quando um usuário é criado na entidade users;(Já esta recebendo o createdBy)
+//3- Quando um usuário é atribuido a um novo grupo de regras com o addGroupingPolicy();

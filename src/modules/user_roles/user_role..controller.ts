@@ -13,8 +13,8 @@ export class UserRolesController{
     
     //Ao receber o id do producer, ele chama um método que salvar o usuário com um role padrão_
     @EventPattern('ms_roles_pattern')
-    getDataUser(@Payload() id:string){
-        return this.userRoleService.create(id);
+    getDataUser(@Payload() dataCreatedUser:{id:string, firstname:string}){
+        return this.userRoleService.create(dataCreatedUser);
     }
 
     @EventPattern('role_delete')
