@@ -13,10 +13,10 @@ export class CasBinGuard implements CanActivate {
         const user = request.user;//Usuário fornecido por meio do token jwt;
         const path = request.route.path;//endereço da rota acessada;
         const method = request.method.toLowerCase();//Método de endpoint que esta sendo acessado;
-
+        
         //Chamando o método do casbin.service.ts para obter o enforce_
         const enforcer = await this.casbinService.getEnforce(user);
-        
+
         //Passando o enforce_
         const sllowed = await enforcer.enforce(user?.sub, path, method);
 
