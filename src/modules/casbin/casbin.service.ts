@@ -1,5 +1,5 @@
 // src/casbin/casbin.provider.ts
-import { HttpException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { ForbiddenException, HttpException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Enforcer, newEnforcer, newModelFromString } from 'casbin';
 import { SequelizeAdapter } from 'casbin-sequelize-adapter';
@@ -223,5 +223,25 @@ export class CasBinService implements OnModuleInit {
 
   async getListCasbin(){
     return this.repository.find();
+  }
+
+  async getOneToGroup(id?:string,role?:string):Promise<boolean>{
+    try{
+      if(!id) throw new ForbiddenException('Identificador Inválido!');
+  
+      const group = await this.repository.findOne({
+        where: {
+          ptype: 'g',
+          v0: id,
+          v1:role
+        }
+      });
+  
+      if(group) return true;
+
+      return false;
+    }catch(error){
+      throw new ForbiddenException(error);
+    }
   }
 }
