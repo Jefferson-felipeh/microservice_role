@@ -6,6 +6,7 @@ import { CasBinGuard } from "./guards/casbin.guard";
 import { JwtAuthGuard } from "./guards/jwtAuthGuard.guard";
 import { JwtStrategy } from "./strategy/jwtStrategy.strategy";
 import { ClientsModule, Transport } from "@nestjs/microservices";
+import { CasbinController } from "./casbin.controller";
 
 @Module({
     imports: [
@@ -32,6 +33,7 @@ import { ClientsModule, Transport } from "@nestjs/microservices";
             }
         ]),
     ],
+    controllers: [CasbinController],
     providers: [
         CasBinService,
         CasBinGuard,
