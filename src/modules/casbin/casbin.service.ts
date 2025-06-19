@@ -46,7 +46,8 @@ export class CasBinService implements OnModuleInit {
       ['admin', '/role/delete/:id', 'delete'],
       ['admin', '/role/update/:id', 'patch'],
       ['user', '/role/getOne/:id', 'get'],
-      ['super-admin', '/role/assign-role', 'post']
+      ['super-admin', '/role/assign-role', 'post'],
+      ['super-admin','/casbin/list','get']
     ];
 
     for (const [sub, obj, act] of defaultPolicies) {
@@ -121,90 +122,106 @@ export class CasBinService implements OnModuleInit {
     }
 
     this.dataEnforce = dataUser;
-
     return this.enforcer;
   }
 
   //Grupo padrão atribuido a todo usuário criado_
   async getDataUserCasbin(dataUser, createdBy: string) {
-    if (!dataUser) throw new HttpException('Dados do usuário não obtidos!', 403);
+    try{
 
-    //Por padrão, todo usuário criado será adicionado no grupo de regra user_
-    await this.enforcer.addGroupingPolicy(dataUser.userid, 'user');
-
-    await this.createdByAttribuition(dataUser, createdBy);
+      if (!dataUser) throw new HttpException('Dados do usuário não obtidos!', 403);
+  
+      //Por padrão, todo usuário criado será adicionado no grupo de regra user_
+      await this.enforcer.addGroupingPolicy(dataUser.userid, 'user');
+  
+      await this.createdByAttribuition(dataUser, createdBy);
+    }catch(error){
+      throw new HttpException(error.message || error,400);
+    }
   }
 
   //Atribuindo valor a coluna createdBy_
-  async createdByAttribuition(dataUser, createdBy: string) {
-    console.log(dataUser +" - "+createdBy)
-    const grupoRegister = await this.repository.findOne({
-      where: {
-        ptype: 'g',
-        v0: dataUser.userid,
-        v1: 'user'
-      }
-    });
+  async createdByAttribuition(dataUser,createdBy: string,role?) {
+    try{
+      const grupoRegister = await this.repository.findOne({
+        where: {
+          ptype: 'g',
+          v0: dataUser.userid ? dataUser.userid : dataUser,
+          v1: role ? role : 'user'
+        }
+      });
 
-    if (!grupoRegister) throw new HttpException('Grupo de regras não encontrado!', 403);
+      if (!grupoRegister) throw new HttpException('Grupo de regras não encontrado!', 403);
+  
+      grupoRegister.createdBy = createdBy;
 
-    grupoRegister.createdBy = createdBy;
-
-    await this.repository.save(grupoRegister);
+      await this.repository.save(grupoRegister);
+    }catch(error){
+      throw new HttpException(error.message || error,400);
+    }
   }
 
   //Atribuir um usuário a um novo grupo de regras_
   async assign_role(id: string, role: string): Promise<object> {
-    if (!id) throw new HttpException('Identificador não atribuido!', 400);
+    try{
 
-    this.enforcer.loadPolicy();
-    
-    const assign_role_user = await this.getUser(this.dataEnforce);
-    console.log(assign_role_user);
-    if (!assign_role_user) throw new HttpException('Erro ao obter dados!', 400);
-
-    const roleActual = await this.getUserToGroup(id);
-    if(!roleActual) throw new HttpException('Usuário não encontrado no grupo de regras!',403);
-
-    const role_attribuited = await this.enforcer.addGroupingPolicy(id, role, roleActual);
-    if (!role_attribuited) throw new HttpException('Erro ao atribuir role!', 400);
-
-    await this.createdByAttribuition(id,assign_role_user);
-
-    return {
-      status: 'attribuited successfuly'
+      if (!id) throw new HttpException('Identificador não atribuido!', 400);
+  
+      this.enforcer.loadPolicy();
+      
+      const assign_role_user = await this.getUser(this.dataEnforce);
+      if (!assign_role_user) throw new HttpException('Erro ao obter dados!', 400);
+      
+      const roleActual = await this.getUserToGroup(id);
+      if(!roleActual) throw new HttpException('Usuário não encontrado no grupo de regras!',403);
+  
+      const role_attribuited = await this.enforcer.addGroupingPolicy(id, role, roleActual);
+      if (!role_attribuited) throw new HttpException('Erro ao atribuir role!', 400);
+  
+      await this.createdByAttribuition(id,assign_role_user,role);
+  
+      return {
+        status: 'attribuited successfuly'
+      }
+    }catch(error){
+      throw new HttpException(error.message || error,400);
     }
   }
 
   //Retorna o grupo ao qual o usuário pertence de acordo com o id do usuário_
   async getUserToGroup(id:string){
-    //Buscando pelo grupo de regras em que o usuário foi inserido_
-    const userToGroup = await this.repository.findOne({
-      where: {
-        v0: id,
-      },
-      order: {
-        id: 'DESC'
-      }
-    });
-    if(!userToGroup) throw new HttpException('Usuário não tem acesso a esse grupo de permissões!',403);
-    
-    return userToGroup.v1;
+    try{
+
+      //Buscando pelo grupo de regras em que o usuário foi inserido_
+      const userToGroup = await this.repository.findOne({
+        where: {
+          v0: id,
+        },
+        order: {
+          id: 'DESC'
+        }
+      });
+      if(!userToGroup) throw new HttpException('Usuário não tem acesso a esse grupo de permissões!',403);
+      
+      return userToGroup.v1;
+    }catch(error){
+      throw new HttpException(error.message || error,400);
+    }
   }
 
   async getUser(dataUser?:{user:string,sub:string}){
-    const user = await lastValueFrom(
-      this.client.send('find-user-by-email',dataUser?.user),
-    );
+    try{
+      const user = await lastValueFrom(
+        this.client.send('find-user-by-email',dataUser?.user),
+      );
+  
+      return user.firstname;
+    }catch(error){
+      console.log(error.message || error);
+    }
+  }
 
-    return user.firstname;
+  async getListCasbin(){
+    return this.repository.find();
   }
 }
-
-//RBAC -> Controle de Acesso Baseado em Funções
-//ABAC -> Controle de Acesso Baseado em Atributos
-
-//Tem tres momentos em que os dados são cadastrados na entidade casbin_rule:
-//1- Quando é criado uma nova regra com politicas definidas no banco de dados com o addPolicy();
-//2- Quando um usuário é criado na entidade users;(Já esta recebendo o createdBy)
-//3- Quando um usuário é atribuido a um novo grupo de regras com o addGroupingPolicy();
