@@ -49,7 +49,7 @@ export class RoleController{
         return this.roleService.updateRole(id,dataRole);
     }
     
-    // @UseGuards(JwtAuthGuard,CasBinGuard)
+    @UseGuards(JwtAuthGuard,CasBinGuard)
     @Post('assign-role')
     async assign_role(@Body() role:Assign_roleDto):Promise<object>{
         return this.roleService.assign_role(role);
