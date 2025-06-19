@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, UseGuards } from "@nestjs/common";
 import { CasBinService } from "./casbin.service";
 import { JwtAuthGuard } from "./guards/jwtAuthGuard.guard";
 import { CasBinGuard } from "./guards/casbin.guard";
@@ -12,5 +12,10 @@ export class CasbinController{
     @Get('list')
     async getList(){
         return this.casbinService.getListCasbin();
+    }
+
+    @Get('group/:id')
+    async getOneToGroup(@Param('id') id:string){
+        return this.casbinService.getOneToGroup(id);
     }
 }
