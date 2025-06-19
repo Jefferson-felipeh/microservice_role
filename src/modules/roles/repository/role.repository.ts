@@ -65,4 +65,18 @@ export class RoleRepository{
             data:update
         };
     }
+
+    async roleOneToName(roleName:string):Promise<boolean>{
+        try{
+            const role = await this.repository.findOne({
+                where: {role: roleName}
+            });
+
+            if(!role) return false;
+            
+            return true;
+        }catch(error){
+            throw new HttpException(error.message || error,400);
+        }
+    }
 }
