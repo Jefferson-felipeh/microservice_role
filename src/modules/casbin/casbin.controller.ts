@@ -2,20 +2,27 @@ import { Controller, Get, Param, UseGuards } from "@nestjs/common";
 import { CasBinService } from "./casbin.service";
 import { JwtAuthGuard } from "./guards/jwtAuthGuard.guard";
 import { CasBinGuard } from "./guards/casbin.guard";
+import { MessagePattern, Payload } from "@nestjs/microservices";
 
 @Controller('casbin')
-export class CasbinController{
+export class CasbinController {
 
-    constructor(private casbinService:CasBinService){}
+    constructor(private casbinService: CasBinService) { }
 
-    @UseGuards(JwtAuthGuard,CasBinGuard)
+    @UseGuards(JwtAuthGuard, CasBinGuard)
     @Get('list')
-    async getList(){
+    async getList() {
         return this.casbinService.getListCasbin();
     }
 
     @Get('group/:id')
-    async getOneToGroup(@Param('id') id:string){
+    async getOneToGroup(@Param('id') id: string) {
         return this.casbinService.getOneToGroup(id);
+    }
+
+    @MessagePattern('casbinGuard-require')
+    async casbinnGuardUser(@Payload() data) {
+        const enforcer = await this.casbinService.getEnforce(data.user);
+        return enforcer.enforce(data.user?.sub,data.path,data.method);
     }
 }
