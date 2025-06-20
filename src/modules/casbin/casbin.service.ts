@@ -47,7 +47,13 @@ export class CasBinService implements OnModuleInit {
       ['admin', '/role/update/:id', 'patch'],
       ['user', '/role/getOne/:id', 'get'],
       ['super-admin', '/role/assign-role', 'post'],
-      ['super-admin','/casbin/list','get']
+      ['super-admin','/casbin/list','get'],
+
+      ['admin','/users/query','get'],
+      ['admin','/users/list','get'],
+      ['admin','/users/getOne/:id','get'],
+      ['admin','/users/delete:/id','delete'],
+      ['admin','/users/update/:id','patch']
     ];
 
     for (const [sub, obj, act] of defaultPolicies) {
@@ -122,6 +128,7 @@ export class CasBinService implements OnModuleInit {
     }
 
     this.dataEnforce = dataUser;
+    
     return this.enforcer;
   }
 
