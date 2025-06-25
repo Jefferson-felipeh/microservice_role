@@ -7,11 +7,6 @@ import { Assign_roleDto } from "./dtos/assing_role.dto";
 
 @Controller('role')
 export class RoleController{
-
-    /*
-        Iremos criar Roles manualmente de acordo com a necessidade_
-    */
-
     constructor(private roleService:RoleService){}
 
     @UseGuards(JwtAuthGuard,CasBinGuard)
