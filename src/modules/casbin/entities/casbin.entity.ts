@@ -4,7 +4,6 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeor
 //Nessa entidade ou banco de dados irei armazenar as políticas, como: p, jefferson, /roles/ get
 @Entity('casbin_rule')
 export class CasbinRuleEntity {
-  //Esses são os campos necessários para a entidade do casbin_
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -34,4 +33,7 @@ export class CasbinRuleEntity {
 
   @Column({nullable: true})
   createdBy:string
+
+  @Column({default: ''})
+  modifiedOn:string
 }
