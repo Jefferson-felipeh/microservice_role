@@ -251,4 +251,19 @@ export class CasBinService implements OnModuleInit {
       throw new ForbiddenException(error);
     }
   }
+
+  async getUserPermissoes(id:string):Promise<object>{
+    const permissoes = await this.repository.find({
+      where: {
+        ptype: 'g',
+        v0: id
+      }
+    });
+
+    if(!permissoes) throw new HttpException('Grupo de permissões não encontrado!',403);
+
+    const obj = permissoes.map(e => e.v1);
+
+    return obj;
+  }
 }

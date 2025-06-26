@@ -4,6 +4,7 @@ import { RoleService } from "./role.service";
 import { CasBinGuard } from "../casbin/guards/casbin.guard";
 import { JwtAuthGuard } from "../casbin/guards/jwtAuthGuard.guard";
 import { Assign_roleDto } from "./dtos/assing_role.dto";
+import { EventPattern, MessagePattern, Payload } from "@nestjs/microservices";
 
 @Controller('role')
 export class RoleController{
