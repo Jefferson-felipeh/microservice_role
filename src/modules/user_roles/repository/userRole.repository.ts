@@ -34,6 +34,7 @@ export class UserRoleRepository{
         if(!createUserRole) throw new HttpException('Erro ao criar estrutura!',400);
 
         const saveUserRole = await this.repository.save(createUserRole);
+        
         await this.casbinService.getDataUserCasbin(saveUserRole,dataCreatedUser.firstname);
         
         return saveUserRole;

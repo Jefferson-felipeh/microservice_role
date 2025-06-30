@@ -7,6 +7,7 @@ import { CasbinRuleEntity } from './entities/casbin.entity';
 import { Repository } from 'typeorm';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
+import { PermissionsDto } from '../permissions/dtos/permissions.dto';
 
 //Service reponsável por construir o adapter, referenciar o banco de dados no adapter, 
 //e obter os dados das regras que serão especificadas no banco de dados atravez dos dados do model.conf_
@@ -120,6 +121,11 @@ export class CasBinService implements OnModuleInit {
     return this.enforcer;
   }
 
+  async loadPolicy(){
+    this.enforcer.loadPolicy();
+    console.log('✅ Políticas Carregadas!');
+  }
+
   async getEnforce(dataUser?:{user:string ,sub:string}): Promise<Enforcer> {
     if (!this.enforcer) {
       console.log('🚀 Inicializando o enforcer on-demand...');
@@ -140,7 +146,9 @@ export class CasBinService implements OnModuleInit {
   
       //Por padrão, todo usuário criado será adicionado no grupo de regra user_
       await this.enforcer.addGroupingPolicy(dataUser.userid, 'user');
-  
+
+      await this.enforcer.loadPolicy();
+      
       await this.createdByAttribuition(dataUser, createdBy);
     }catch(error){
       throw new HttpException(error.message || error,400);
@@ -255,7 +263,7 @@ export class CasBinService implements OnModuleInit {
   }
 
   //Busca pelas funções e pelas permissões que o usuários possue na entidade casbin_rule_
-  async getUserPermissoes(id:string):Promise<object>{
+  async getUserPermissoes(id:string):Promise<PermissionsDto>{
     const permissoes = await this.repository.find({
       where: {
         ptype: 'g',
@@ -263,31 +271,14 @@ export class CasBinService implements OnModuleInit {
       }
     });
 
-    //Isso me retorna um array contendo todas os grupos de permissoes e em quais funções eles estão associados com base no id do usuário_
     const permissions = await this.enforcer.getImplicitPermissionsForUser(id);
     const perms = permissions.map(([_, obj, act]) => `${obj}:${act}`);
-
-    //Aqui depois de obter todas as permissões que o usuário tem no casbin, eu vou acessar
-    //a entidade de menus e filtrar quais menus o usuário tem acesso com base nas permissões_
-    //-----------------------
 
     if(!permissoes) throw new HttpException('Grupo de permissões não encontrado!',403);
 
     const obj_roles = permissoes.map(e => e.v1);
-    const obj_permissions = permissions;
 
-    return {
-      obj_roles,
-      perms
-      //Falta apenas trazer os menus que ele usuário tem permissão,
-      //para isso, irei precisar acessar/chamar o MenuRepository,
-      //la irei fazer um filtro e ver se perms esta incluso e retornar os 
-      //menus;
-    };
-
-    /*
-      Eu preciso que o backend retorne para o front os menus em que esse usuários terá acesso ou não,
-    */
+    return { obj_roles, perms };
   }
 
   //Verifica se uma politica já existe no banco de dados do casbin_rule_
@@ -295,7 +286,7 @@ export class CasBinService implements OnModuleInit {
 
     if(!path) throw new HttpException('Path Inválido!',403);
 
-    const role = 'admin';
+    const role = 'user';
 
     const [obj, act] = path.split(':');
     

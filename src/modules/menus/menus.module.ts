@@ -1,4 +1,4 @@
-import { Module, forwardRef} from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Menu } from "./entities/Menu.entity";
 import { MenuController } from "./menus.controller";

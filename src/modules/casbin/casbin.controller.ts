@@ -26,8 +26,8 @@ export class CasbinController {
         return enforcer.enforce(data.user?.sub,data.path,data.method);
     }
 
-    @MessagePattern('get-roles-and-permissions')
-    async getRolesAndPermissions(@Payload() payload){
-        return this.casbinService.getUserPermissoes(payload);
-    }
+    // @MessagePattern('get-roles-and-permissions')
+    // async getRolesAndPermissions(@Payload() payload){
+    //     return this.casbinService.getUserPermissoes(payload);
+    // }
 }
