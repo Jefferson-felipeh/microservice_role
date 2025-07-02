@@ -7,8 +7,19 @@ export class MenuService{
     constructor(private repository:MenuRepository){}
 
     async create(dataMenu:CreateMenuDto):Promise<object>{
-        if(!dataMenu) throw new HttpException('Dados Inválidos!',400);
+         const fieldsRequires = ['label','path','icon','permission'];
 
+        const verifyValuesFields = fieldsRequires.some(
+            field => !dataMenu[field]?.trim()
+        );
+
+        if(verifyValuesFields) throw new HttpException('Dados Inválidos!',400);
+        
         return this.repository.create(dataMenu);
+
+    }
+
+    findAll(){
+        return this.repository.findAll();
     }
 }
