@@ -7,6 +7,7 @@ import { MenuRepository } from "./repository/MenuRepository.repository";
 import { CasBinService } from "../casbin/casbin.service";
 import { CasbinRuleEntity } from "../casbin/entities/casbin.entity";
 import { CasbinModule } from "../casbin/casbin.module";
+import { PolicyService } from "../casbin/helpers/policy.service";
 
 @Module({
     imports: [
@@ -17,7 +18,8 @@ import { CasbinModule } from "../casbin/casbin.module";
     providers: [
         MenuService,
         MenuRepository,
-        CasBinService
+        CasBinService,
+        PolicyService
     ],
     exports: [
         MenuRepository
