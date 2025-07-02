@@ -7,6 +7,8 @@ import { JwtAuthGuard } from "./guards/jwtAuthGuard.guard";
 import { JwtStrategy } from "./strategy/jwtStrategy.strategy";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import { CasbinController } from "./casbin.controller";
+import { EnforcerService } from "./helpers/enforcer.service";
+import { PolicyService } from "./helpers/policy.service";
 
 @Module({
     imports: [
@@ -36,12 +38,15 @@ import { CasbinController } from "./casbin.controller";
     controllers: [CasbinController],
     providers: [
         CasBinService,
+        PolicyService,
         CasBinGuard,
         JwtAuthGuard,
         JwtStrategy,
+        
     ],
     exports: [
         CasBinService,
+        PolicyService,
         CasBinGuard,
         JwtAuthGuard,
         JwtStrategy,

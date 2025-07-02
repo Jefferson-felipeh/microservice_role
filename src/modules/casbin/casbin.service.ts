@@ -8,6 +8,9 @@ import { Repository } from 'typeorm';
 import { lastValueFrom } from 'rxjs';
 import { ClientProxy } from '@nestjs/microservices';
 import { PermissionsDto } from '../permissions/dtos/permissions.dto';
+import { EnforcerService } from './helpers/enforcer.service';
+import { PolicyService } from './helpers/policy.service';
+import { PersonalProfileDto } from '../personal_profile/dtos/createPersonalProfile';
 
 //Service reponsável por construir o adapter, referenciar o banco de dados no adapter, 
 //e obter os dados das regras que serão especificadas no banco de dados atravez dos dados do model.conf_
@@ -19,6 +22,8 @@ export class CasBinService implements OnModuleInit {
     
     //Utilizando o ClientProxy para enviar um send() para o microservice_users_
     @Inject('MICROSERVICE_USERS') private client:ClientProxy,
+
+    private policyService:PolicyService
   ){}
 
   private enforcer: Enforcer;
@@ -238,70 +243,30 @@ export class CasBinService implements OnModuleInit {
 
   //Retorna a lista de regras cadastradas na entidade casbin_
   async getListCasbin(){
-    return this.repository.find();
+    return this.policyService.getListCasbin();
   }
 
   //verifica se o usuário pertence ao grupo com a função especificada_
   async getOneToGroup(id?:string,role?:string):Promise<boolean>{
-    try{
-      if(!id) throw new ForbiddenException('Identificador Inválido!');
-  
-      const group = await this.repository.findOne({
-        where: {
-          ptype: 'g',
-          v0: id,
-          v1:role
-        }
-      });
-  
-      if(group) return true;
-
-      return false;
-    }catch(error){
-      throw new ForbiddenException(error);
-    }
+    if(!id || !role) throw new ForbiddenException('Dados Inválidos!');
+    return this.policyService.getOneToGroup(id,role);
   }
 
   //Busca pelas funções e pelas permissões que o usuários possue na entidade casbin_rule_
-  async getUserPermissoes(id:string):Promise<PermissionsDto>{
-    const permissoes = await this.repository.find({
-      where: {
-        ptype: 'g',
-        v0: id
-      }
-    });
-
-    const permissions = await this.enforcer.getImplicitPermissionsForUser(id);
-    const perms = permissions.map(([_, obj, act]) => `${obj}:${act}`);
-
-    if(!permissoes) throw new HttpException('Grupo de permissões não encontrado!',403);
-
-    const obj_roles = permissoes.map(e => e.v1);
-
-    return { obj_roles, perms };
+  async getUserPermissions(id:string):Promise<PermissionsDto>{
+    if(!id) throw new HttpException('Identificador Inválido!',403);
+    return this.policyService.getUserPermissions(id,this.enforcer);
   }
 
-  //Verifica se uma politica já existe no banco de dados do casbin_rule_
-  async getPolicieToMenu(path:string):Promise<object>{
-
+  async getPolicieToMenus(path:any):Promise<object>{
     if(!path) throw new HttpException('Path Inválido!',403);
-
-    const role = 'user';
-
-    const [obj, act] = path.split(':');
-    
-    const policie = await this.enforcer.hasPolicy(role,obj,act);
-
-    if(policie) throw new HttpException('Politica já definida na base de dados!',403);
-
-    const savePolicie = await this.enforcer.addPolicy(role,obj,act);
-
-    this.enforcer.loadPolicy();
-
-    return {
-      status:'Sucessfully',
-      message: 'Política cadastrada com sucesso',
-      data: savePolicie
-    }
+    return this.policyService.getPolicieToMenus(path,this.enforcer);
   }
+
+  //Verificando se na entidade casbin já existe as regras e permissões para o módulo de PersolaProfile_
+  // async getPoliciesPersonalProfile(dataBody:PersonalProfileDto,enforcer:Enforcer=this.enforcer):Promise<object>{
+  //     if(!dataBody) throw new HttpException('Dados do perfil Inválidos',403);
+
+  //     return this.policyService.getPoliciesPersonalProfile(dataBody);
+  // }
 }
