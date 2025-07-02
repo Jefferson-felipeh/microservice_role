@@ -15,8 +15,19 @@ export class MenuRepository{
 
     async create(dataMenu:CreateMenuDto):Promise<object>{
         try{
-            const savePolicie = await this.casbinService.getPolicieToMenu(dataMenu.permission);
+            const savePolicie = await this.casbinService.getPolicieToMenus(dataMenu);
             
+            const exists = await this.repository.findOne({
+                where: {
+                    label: dataMenu.label,
+                    path: dataMenu.path,
+                    permission: dataMenu.permission
+                }
+            });
+
+            console.log(exists);
+            if(exists) throw new HttpException('Menu já cadastrado na base de dados!',400);
+
             const createMenu = this.repository.create(dataMenu);
     
             await this.repository.save(createMenu);
@@ -27,12 +38,20 @@ export class MenuRepository{
         }
     }
 
+    findAll(){
+        return this.repository.find();
+    }
+
     async findMenus(perms){
-        return await this.repository.find({
-            where: {
-                active: true,
-                permission: In(perms)
-            }
-        });
+        try{
+            return await this.repository.find({
+                where: {
+                    active: true,
+                    permission: In(perms)
+                }
+            });
+        }catch(error){
+            console.log(error.message || error);
+        }
     }
 }
